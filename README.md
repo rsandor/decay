@@ -1,5 +1,5 @@
-# Decay
-An NES Sound Engine by Ryan Sandor Richards
+# Decay NES Audio Engine
+By Ryan Sandor Richards
 
 ### Expected Memory Layout
 
@@ -22,6 +22,18 @@ The decay sound engine assumes the following memory layout:
 +---------------+-----------------------------------------+-----------+
 ```
 
-While your program does not have to follow this layout *exactly* it must reserve the page at address `$0300` for use by decay.
+While your program does not have to follow this layout *exactly* it must reserve at least one page (256 bytes) of RAM for use by decay. You can change the page offset in the `decay/header.s` file.
 
- 
+
+
+
+
+	lda #.LOBYTE(song_label)
+	sta $00
+	lda #.HIBYTE(song_label)
+	sta $01
+	jsr decay_load_song
+
+
+
+	DecayLoadSong song_label

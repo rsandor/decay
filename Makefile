@@ -1,8 +1,9 @@
-build: 
-	ld65 obj/$< -o nes/$@ -t nes
-	fceux nes/$@
+run: demo.nes
+	fceux demo.nes
 
-# Build object files from assembly source
+%.nes: %.o
+	ld65 $< -o $@ -t nes
+
 %.o: %.s
 	ca65 $< -o $@ -t nes
 
