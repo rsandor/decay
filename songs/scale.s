@@ -61,24 +61,25 @@
 	; 
 	; Byte 1: Position
 	; Byte 2: Period Index (see decay_set_period routine)
-	; Byte 3: D---IIII
+	; Byte 3: Instrument
+	;         D---IIII 
 	;         |   |
 	;         |   +--- Instrument Index
 	;         +------- Disable (0: enabled, 1: disabled)
-	; Byte 4: D-DDVVVV
-	;         | | |
-	;         | | +--- Volume
-	;         | +----- Duty Cycle
-	;         +------- Disable (0: enabled, 1: disabled)
+	; Byte 4: Environment
+	;         CC--VVVV
+	;         |   |
+	;         |   +--- Volume
+	;         +------- Duty Cycle
 	;
-	.byte $00, C3, $80, %00011111
-	.byte $02, D3, $80, %00011111
-	.byte $04, E3, $80, %00011111
-	.byte $06, F3, $80, %00011111
-	.byte $08, G3, $80, %00011111
-	.byte $0A, A4, $80, %00011111
-	.byte $0C, B4, $80, %00011111
-	.byte $0E, C4, $80, %00011111
+	.byte $00, C3, $80, %01000111
+	.byte $02, D3, $80, %01000111
+	.byte $04, E3, $80, %01000111
+	.byte $06, F3, $80, %01000111
+	.byte $08, G3, $80, %01000111
+	.byte $0A, A4, $80, %01000111
+	.byte $0C, B4, $80, %01000111
+	.byte $0E, C4, $80, %01000111
 
 	; Square 2 Channel
 	.byte $04

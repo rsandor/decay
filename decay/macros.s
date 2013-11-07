@@ -105,6 +105,7 @@
 .endmacro
 
 ; Loads a song into the engine
-.macro DecayLoadSong
-	
+.macro DecayLoadSong song
+	DecayAddr song
+	jsr decay_load_song
 .endmacro

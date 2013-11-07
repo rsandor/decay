@@ -59,9 +59,6 @@ decay_load_song:
 		iny
 	.endmacro
 
-
-
-
 	; Copy the song address into the "current" address
 	lda song_lo
 	sta addr_lo
@@ -74,7 +71,7 @@ decay_load_song:
 	; Skip song format (for now)
 	; In the future we'd branch from here to load songs of different
 	; formats. Since there is only one format at this time we don't
-	; really need to do much.
+	; need to do this :)
 	iny 
 
 	; Clock Add
@@ -170,6 +167,140 @@ decay_load_song:
 	; Once all the patterns have been read, we're done!
 	rts
 .endscope
+
+
+
+; Plays the song. Should be called every frame (either via NMI or custom
+; frame handling routines).
+decay_play_song:
+.scope
+	; Local Variables
+	matrix_lo 	= $10
+	matrix_hi 	= $11
+	pattern_lo	= $12
+	pattern_hi	= $13
+	
+
+	; Inline macro for handling the playing of a channel
+	.macro PlayChannel flag, channel, addr
+		; Skip if the square1 channel is off
+		lda DECAY_FLAGS
+		and #flag
+		beq :++
+
+		; Skip unless we've reached the next position
+		lda addr + $02
+		cmp DECAY_PATTERN_POS
+		bne :++
+
+		; Load the pattern address into the zero page
+		lda addr
+		sta pattern_lo
+		lda addr + $01
+		sta pattern_hi
+
+		ldy #1
+
+		; Set the period
+		lda #.LOBYTE(channel)
+		sta $00
+		lda #.HIBYTE(channel)
+		sta $01
+		lda (pattern_lo), y
+		sta $02
+		jsr decay_set_period
+		iny
+
+		; Skip the instrument (for now)
+		iny
+
+		; Set the environment
+		lda (pattern_lo), y
+		sta DECAY_SQ1_ENV
+		iny
+
+		; Advance the pattern pointer
+		tya
+		clc
+		adc pattern_lo
+		bcc :+
+		inc pattern_hi
+	:	sta addr
+		lda pattern_lo
+		sta addr+1
+	:
+	.endmacro
+
+
+	; Tempo Clock
+	clc
+	lda DECAY_CLOCK_ADD
+	adc DECAY_CLOCK
+	bcc decay_play_song_advance_frame
+
+	PlayChannel 1, DECAY_SQ1_LO, DECAY_SQUARE1_PATTERN_LO
+	; PlayChannel 2, DECAY_SQ2_LO, DECAY_SQUARE2_PATTERN_LO
+	; PlayChannel 4, DECAY_TRI_LO, DECAY_TRIANGLE_PATTERN_LO
+	; PlayChannel 8, DECAY_NOI_LO, DECAY_NOISE_PATTERN_LO
+
+decay_play_song_advance_position:
+	clc
+	lda DECAY_PATTERN_POS
+	adc #1
+	cmp DECAY_PATTERN_SIZE
+	bne decay_play_song_advance_frame
+	
+decay_play_song_advance_matrix:
+	lda DECAY_MATRIX_POS
+	adc #1
+	cmp DECAY_MATRIX_SIZE
+	bne :+
+	lda #0
+:	sta DECAY_MATRIX_POS
+
+	; Load the patterns
+	tay
+	lda DECAY_MATRIX_LO
+	sta matrix_lo
+	lda DECAY_MATRIX_HI
+	sta matrix_hi
+
+	; Square 1 Pattern
+	sty #0
+	
+	lda (matrix_lo), y
+	asl
+	tax
+	lda DECAY_PATTERN, x
+	sta pattern_lo
+	lda DECAY_PATTERN + 1, x
+	sta pattern_hi
+
+	; Set the pattern pointer
+	lda pattern_lo
+	adc #1
+	bcc :+
+	inc pattern_hi
+:	sta DECAY_SQUARE1_PATTERN_LO
+	lda pattern_hi
+	sta DECAY_SQUARE1_PATTERN_HI
+
+	; Set the next position
+	sty #0
+	lda (pattern_lo), y
+	sta DECAY_SQUARE1_NEXT_POS
+
+	
+	; Square 2 pattern
+	sty #1
+	; ...
+
+
+decay_play_song_advance_frame:
+	; TODO Implement me (used for instruments)
+
+.endscope
+	rts
 
 
 ; Sets the period for an APU channel (Square 1, etc.).
