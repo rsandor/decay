@@ -31,7 +31,7 @@ decay_init:
 ;  $00 - Lobyte of the song address
 ;  $01 - Hibyte of the song address
 decay_load_song:
-.scope
+.proc DecayLoadSongSub
 	; Params
 	song_lo		= $00
 	song_hi		= $01
@@ -166,14 +166,14 @@ decay_load_song:
 
 	; Once all the patterns have been read, we're done!
 	rts
-.endscope
+.endproc
 
 
 
 ; Plays the song. Should be called every frame (either via NMI or custom
 ; frame handling routines).
 decay_play_song:
-.scope
+.proc
 	; Local Variables
 	matrix_lo 	= $10
 	matrix_hi 	= $11
@@ -182,29 +182,29 @@ decay_play_song:
 	
 
 	; Inline macro for handling the playing of a channel
-	.macro PlayChannel flag, channel, addr
-		; Skip if the square1 channel is off
+	.macro PlayChannel flag, apu, channel
+		; Skip if the channel if it is off
 		lda DECAY_FLAGS
 		and #flag
 		beq :++
 
 		; Skip unless we've reached the next position
-		lda addr + $02
+		lda channel + $02
 		cmp DECAY_PATTERN_POS
 		bne :++
 
 		; Load the pattern address into the zero page
-		lda addr
+		lda channel
 		sta pattern_lo
-		lda addr + $01
+		lda channel + $01
 		sta pattern_hi
 
 		ldy #1
 
 		; Set the period
-		lda #.LOBYTE(channel)
+		lda #.LOBYTE(apu + $02)
 		sta $00
-		lda #.HIBYTE(channel)
+		lda #.HIBYTE(apu + $02)
 		sta $01
 		lda (pattern_lo), y
 		sta $02
@@ -216,8 +216,12 @@ decay_play_song:
 
 		; Set the environment
 		lda (pattern_lo), y
-		sta DECAY_SQ1_ENV
+		sta apu
 		iny
+
+		; Set the next position
+		lda (pattern_lo), y
+		sta addr + $02
 
 		; Advance the pattern pointer
 		tya
@@ -236,21 +240,20 @@ decay_play_song:
 	clc
 	lda DECAY_CLOCK_ADD
 	adc DECAY_CLOCK
-	bcc decay_play_song_advance_frame
+	bcc advance_frame
 
-	PlayChannel 1, DECAY_SQ1_LO, DECAY_SQUARE1_PATTERN_LO
+	PlayChannel DECAY_FLAG_SQUARE1, DECAY_APU_SQUARE1_ENV, DECAY_SQUARE1_PATTERN_LO
 	; PlayChannel 2, DECAY_SQ2_LO, DECAY_SQUARE2_PATTERN_LO
 	; PlayChannel 4, DECAY_TRI_LO, DECAY_TRIANGLE_PATTERN_LO
-	; PlayChannel 8, DECAY_NOI_LO, DECAY_NOISE_PATTERN_LO
 
-decay_play_song_advance_position:
+advance_position:
 	clc
 	lda DECAY_PATTERN_POS
 	adc #1
 	cmp DECAY_PATTERN_SIZE
-	bne decay_play_song_advance_frame
+	bne advance_frame
 	
-decay_play_song_advance_matrix:
+advance_matrix:
 	lda DECAY_MATRIX_POS
 	adc #1
 	cmp DECAY_MATRIX_SIZE
@@ -275,7 +278,7 @@ decay_play_song_advance_matrix:
 	sta pattern_lo
 	lda DECAY_PATTERN + 1, x
 	sta pattern_hi
-
+ 
 	; Set the pattern pointer
 	lda pattern_lo
 	adc #1
@@ -296,10 +299,10 @@ decay_play_song_advance_matrix:
 	; ...
 
 
-decay_play_song_advance_frame:
+advance_frame:
 	; TODO Implement me (used for instruments)
 
-.endscope
+.endproc
 	rts
 
 
